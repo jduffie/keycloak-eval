@@ -5,7 +5,15 @@
     <title>Title</title>
 </head>
 <body>
-   <a href="/login"><button>Login with keycloak</button></a>
-   <a href="/logout"><button>Logout</button></a>
+<div>
+    <div class="row"> <a href="/login"><button>Login with keycloak</button></a> </div>
+    <div class="row"> <a href="/logout"><button>Logout</button></a> </div>
+</div>
+<p>
+    auth code : {{.AuthCode}}
+</p>
+<p>
+    session : {{.SessionState}}
+</p>
 </body>
 </html>

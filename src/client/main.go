@@ -13,12 +13,13 @@ var config = struct {
 	afterAuthCodeRedirectURL string
 	logout                   string
 	afterLogoutRedirect      string
-
+	clientId                 string
 }{
 	authURL:                  "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/auth",
 	afterAuthCodeRedirectURL: "http://localhost:8080/afterAuthCodeRedirectURL",
 	logout:                   "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/logout",
 	afterLogoutRedirect:      "http://localhost:8080",
+	clientId:                 "billingApp",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
@@ -49,6 +50,7 @@ func logout(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	logoutURL.RawQuery = qs.Encode()
+	appVar = AppVar{}
 	http.Redirect(writer, request, logoutURL.String(), http.StatusFound)
 	log.Printf("logout: done")
 }
@@ -61,14 +63,13 @@ func authCodeRedirect(writer http.ResponseWriter, request *http.Request) {
 	appVar.SessionState = request.URL.Query().Get("session_state")
 	request.URL.RawQuery = ""
 	log.Printf("Request queries: %+v", appVar)
-	//t.Execute(writer, nil)
 	http.Redirect(writer, request, "http://localhost:8080", http.StatusFound)
 	log.Printf("authCodeRedirect: done")
 }
 
 func home(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("home: Request queries: %v", request.URL.Query())
-	t.Execute(writer, nil)
+	t.Execute(writer, appVar)
 	log.Printf("home: done")
 }
 
@@ -81,7 +82,7 @@ func login(writer http.ResponseWriter, request *http.Request) {
 	}
 	qs:= url.Values{}
 	qs.Add("state", "123")
-	qs.Add("client_id", "billingApp")
+	qs.Add("client_id", config.clientId)
 	qs.Add("response_type", "code")
 	qs.Add("redirect_uri", config.afterAuthCodeRedirectURL)
 	req.URL.RawQuery = qs.Encode()
