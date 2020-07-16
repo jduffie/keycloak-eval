@@ -8,18 +8,24 @@ import (
 	"net/url"
 )
 
-var oauth = struct {
-	authURL            string
-	logout             string
+var config = struct {
+	authURL                  string
+	afterAuthCodeRedirectURL string
+	logout                   string
+	afterLogoutRedirect      string
+
 }{
-	authURL: "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/auth",
-	logout: "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/logout",
+	authURL:                  "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/auth",
+	afterAuthCodeRedirectURL: "http://localhost:8080/afterAuthCodeRedirectURL",
+	logout:                   "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/logout",
+	afterLogoutRedirect:      "http://localhost:8080",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
+
 type AppVar struct {
-	AuthCode string
-	SessionState string
+	AuthCode         string
+	SessionState     string
 }
 var appVar = AppVar{}
 
@@ -28,7 +34,7 @@ func main()  {
 	http.HandleFunc("/", home)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/authCodeRedirect", authCodeRedirect)
+	http.HandleFunc("/afterAuthCodeRedirectURL", authCodeRedirect)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -36,8 +42,8 @@ func logout(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("logout: Request queries: %v", request.URL.Query())
 
 	qs:= url.Values{}
-	qs.Add("redirect_uri", "http://localhost:8080")
-	logoutURL, err := url.Parse(oauth.logout)
+	qs.Add("redirect_uri", config.afterLogoutRedirect)
+	logoutURL, err := url.Parse(config.logout)
 	if err != nil {
 		log.Print(err)
 		return
@@ -68,7 +74,7 @@ func home(writer http.ResponseWriter, request *http.Request) {
 
 func login(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("login: Request queries: %v", request.URL.Query())
-	req, err := http.NewRequest("GET", oauth.authURL,nil)
+	req, err := http.NewRequest("GET", config.authURL,nil)
 	if err != nil {
 		log.Print(err)
 		return
@@ -77,7 +83,7 @@ func login(writer http.ResponseWriter, request *http.Request) {
 	qs.Add("state", "123")
 	qs.Add("client_id", "billingApp")
 	qs.Add("response_type", "code")
-	qs.Add("redirect_uri", "http://localhost:8080/authCodeRedirect")
+	qs.Add("redirect_uri", config.afterAuthCodeRedirectURL)
 	req.URL.RawQuery = qs.Encode()
 	http.Redirect(writer, request, req.URL.String(), http.StatusFound)
 	log.Printf("login: done")
