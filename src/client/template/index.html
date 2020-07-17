@@ -59,19 +59,33 @@
 
     <div class="starter-template">
         <h1>Oauth Testing</h1>
-
         <div style="text-align: left">
           <p>
             Based on the <a href="https://www.udemy.com/course/oauth-2-nailed-the-core-framework-with-hands-dirty">udemy class.</a>
           </p>
-            <dl>
-                <dt>AuthCode :</dt>
-                <dd>- {{.AuthCode}}</dd>
-                <dt>SessionState :</dt>
-                <dd>- {{.SessionState}}</dd>
-            </dl>
         </div>
     </div>
+  <table class="table table-hover">
+    <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Key</th>
+      <th scope="col">Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <th scope="row">1</th>
+      <td>AuthCode</td>
+      <td>{{.AuthCode}}</td>
+    </tr>
+    <tr>
+      <th scope="row">2</th>
+      <td>SessionState</td>
+      <td>{{.SessionState}}</td>
+    </tr>
+    </tbody>
+  </table>
 </div>
 
 </div><!-- /.container -->
