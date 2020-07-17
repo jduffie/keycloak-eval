@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -47,20 +49,34 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/", home)
-	http.HandleFunc("/login", login)
+	http.HandleFunc("/", enabledLog(home))
+	http.HandleFunc("/login", enabledLog(login))
 	// temp for now for demo purpose - will later be done via client, itself
-	http.HandleFunc("/exchangeToken", exchangeToken)
+	http.HandleFunc("/exchangeToken", enabledLog(exchangeToken))
 
-	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/afterAuthCodeRedirectURL", authCodeRedirect)
+	http.HandleFunc("/logout", enabledLog(logout))
+	http.HandleFunc("/afterAuthCodeRedirectURL", enabledLog(authCodeRedirect))
 	http.ListenAndServe(":8080", nil)
 }
 
+func enabledLog(h func(writer http.ResponseWriter, request *http.Request)) func(http.ResponseWriter, *http.Request) {
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		handlerName := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
+		log.Printf("--> %s ", handlerName)
+		log.SetPrefix(handlerName + " ")
+		log.Printf("request: %+v\n", request)
+		log.Printf("response: %+v\n", writer)
+		h(writer, request)
+		log.Printf("<-- %s ", handlerName)
+	}
+
+}
+
 func home(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("home: Request queries: %v", request.URL.Query())
+
 	t.Execute(writer, appVar)
-	log.Printf("home: done")
+
 }
 
 //(A)  The client initiates the flow by directing the resource owner's
@@ -72,7 +88,6 @@ func home(writer http.ResponseWriter, request *http.Request) {
 //the user-agent) and establishes whether the resource owner
 //grants or denies the client's access request.
 func login(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("login: Request queries: %v", request.URL.Query())
 	req, err := http.NewRequest("GET", config.authURL, nil)
 	if err != nil {
 		log.Print(err)
@@ -85,7 +100,6 @@ func login(writer http.ResponseWriter, request *http.Request) {
 	qs.Add("redirect_uri", config.afterAuthCodeRedirectURL)
 	req.URL.RawQuery = qs.Encode()
 	http.Redirect(writer, request, req.URL.String(), http.StatusFound)
-	log.Printf("login: done")
 }
 
 //(C)  Assuming the resource owner grants access, the authorization
@@ -101,17 +115,14 @@ func login(writer http.ResponseWriter, request *http.Request) {
 //includes the redirection URI used to obtain the authorization
 //code for verification.
 func authCodeRedirect(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("authCodeRedirect: Request queries: %v", request.URL.Query())
 	appVar.AuthCode = request.URL.Query().Get("code")
 	appVar.SessionState = request.URL.Query().Get("session_state")
 	request.URL.RawQuery = ""
 	log.Printf("Request queries: %+v", appVar)
 	http.Redirect(writer, request, "http://localhost:8080", http.StatusFound)
-	log.Printf("authCodeRedirect: done")
 }
 
 func exchangeToken(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("exchangeToken: Request queries: %v", request.URL.Query())
 	// Request
 	form := url.Values{}
 	form.Add("state", "123")
@@ -139,7 +150,6 @@ func exchangeToken(writer http.ResponseWriter, request *http.Request) {
 	byteBody, err := ioutil.ReadAll(res.Body)
 	// close the reader when current method completes
 	defer res.Body.Close()
-
 	if err != nil {
 		log.Print(err)
 		return
@@ -147,20 +157,13 @@ func exchangeToken(writer http.ResponseWriter, request *http.Request) {
 
 	accessTokenResponse := &model.AccessTokenResponse{}
 	json.Unmarshal(byteBody, accessTokenResponse)
-
 	appVar.AccessToken = accessTokenResponse.AccessToken
 	appVar.RefreshToken = accessTokenResponse.RefreshToken
 	appVar.Scope = accessTokenResponse.Scope
-	log.Printf("exchangeToken: token %s", appVar.AccessToken)
-
 	http.Redirect(writer, request, "http://localhost:8080", http.StatusFound)
-
-	log.Printf("exchangeToken: done")
 }
 
 func logout(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("logout: Request queries: %v", request.URL.Query())
-
 	qs := url.Values{}
 	qs.Add("redirect_uri", config.afterLogoutRedirect)
 	logoutURL, err := url.Parse(config.logout)
@@ -171,5 +174,4 @@ func logout(writer http.ResponseWriter, request *http.Request) {
 	logoutURL.RawQuery = qs.Encode()
 	appVar = AppVar{}
 	http.Redirect(writer, request, logoutURL.String(), http.StatusFound)
-	log.Printf("logout: done")
 }
