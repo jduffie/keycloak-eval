@@ -27,7 +27,7 @@ var config = struct {
 	logout:                   "http://10.100.196.60:8080/auth/realms/learningApp/protocol/openid-connect/logout",
 	afterLogoutRedirect:      "http://localhost:8080",
 	clientId:                 "billingApp",
-	clientSecret:              "6538377f-b199-4e90-85bf-ca0d1f7911bd",
+	clientSecret:             "6538377f-b199-4e90-85bf-ca0d1f7911bd",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
@@ -36,10 +36,13 @@ type AppVar struct {
 	AuthCode     string
 	SessionState string
 	AccessToken  string
+	RefreshToken string
+	Scope        string
 }
+
 var appVar = AppVar{}
 
-func main()  {
+func main() {
 	fmt.Println("hello")
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -54,16 +57,11 @@ func main()  {
 	http.ListenAndServe(":8080", nil)
 }
 
-
-
-
-
 func home(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("home: Request queries: %v", request.URL.Query())
 	t.Execute(writer, appVar)
 	log.Printf("home: done")
 }
-
 
 //(A)  The client initiates the flow by directing the resource owner's
 //user-agent to the authorization endpoint.  The client includes
@@ -75,12 +73,12 @@ func home(writer http.ResponseWriter, request *http.Request) {
 //grants or denies the client's access request.
 func login(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("login: Request queries: %v", request.URL.Query())
-	req, err := http.NewRequest("GET", config.authURL,nil)
+	req, err := http.NewRequest("GET", config.authURL, nil)
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	qs:= url.Values{}
+	qs := url.Values{}
 	qs.Add("state", "123")
 	qs.Add("client_id", config.clientId)
 	qs.Add("response_type", "code")
@@ -112,11 +110,10 @@ func authCodeRedirect(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("authCodeRedirect: done")
 }
 
-
 func exchangeToken(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("exchangeToken: Request queries: %v", request.URL.Query())
 	// Request
-	form:= url.Values{}
+	form := url.Values{}
 	form.Add("state", "123")
 	form.Add("grant_type", "authorization_code")
 	form.Add("code", appVar.AuthCode)
@@ -152,6 +149,8 @@ func exchangeToken(writer http.ResponseWriter, request *http.Request) {
 	json.Unmarshal(byteBody, accessTokenResponse)
 
 	appVar.AccessToken = accessTokenResponse.AccessToken
+	appVar.RefreshToken = accessTokenResponse.RefreshToken
+	appVar.Scope = accessTokenResponse.Scope
 	log.Printf("exchangeToken: token %s", appVar.AccessToken)
 
 	http.Redirect(writer, request, "http://localhost:8080", http.StatusFound)
@@ -162,7 +161,7 @@ func exchangeToken(writer http.ResponseWriter, request *http.Request) {
 func logout(writer http.ResponseWriter, request *http.Request) {
 	log.Printf("logout: Request queries: %v", request.URL.Query())
 
-	qs:= url.Values{}
+	qs := url.Values{}
 	qs.Add("redirect_uri", config.afterLogoutRedirect)
 	logoutURL, err := url.Parse(config.logout)
 	if err != nil {
