@@ -32,6 +32,9 @@ var appVar = AppVar{}
 
 func main()  {
 	fmt.Println("hello")
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	http.HandleFunc("/", home)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
