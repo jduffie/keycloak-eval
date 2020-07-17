@@ -45,7 +45,7 @@ type AppVar struct {
 var appVar = AppVar{}
 
 func main() {
-	fmt.Println("hello")
+	fmt.Println("CLIENT")
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
