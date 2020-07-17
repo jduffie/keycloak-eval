@@ -49,6 +49,7 @@
             <ul class="nav navbar-nav">
                 <li class="active"><a href="/">Home</a></li>
                 <li><a href="/login">Login</a></li>
+                <li><a href="/exchangeToken">exchangeToken</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>
         </div><!--/.nav-collapse -->
@@ -83,6 +84,11 @@
       <th scope="row">2</th>
       <td>SessionState</td>
       <td>{{.SessionState}}</td>
+    </tr>
+    <tr>
+        <th scope="row">2</th>
+        <td>Access Token</td>
+        <td style="word-break: break-all;">{{.AccessToken}}</td>
     </tr>
     </tbody>
   </table>
